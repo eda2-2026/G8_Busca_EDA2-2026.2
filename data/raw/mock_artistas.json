@@ -1,0 +1,20 @@
+[
+  {"id": "mock-001", "nome": "Terra Elétrica", "pais": "BR", "ano_formacao": 1988, "generos": ["rock", "mpb"], "tags_lastfm": [], "ouvintes": 12000},
+  {"id": "mock-002", "nome": "Vento Sul", "pais": "BR", "ano_formacao": 1995, "generos": ["mpb", "bossa nova"], "tags_lastfm": [], "ouvintes": 8500},
+  {"id": "mock-003", "nome": "Ferro Negro", "pais": "BR", "ano_formacao": 1991, "generos": ["metal", "rock"], "tags_lastfm": [], "ouvintes": 15200},
+  {"id": "mock-004", "nome": "Batuque Real", "pais": "BR", "ano_formacao": 2001, "generos": ["samba", "funk"], "tags_lastfm": [], "ouvintes": 22000},
+  {"id": "mock-005", "nome": "Grito Urbano", "pais": "BR", "ano_formacao": 1999, "generos": ["punk", "rock"], "tags_lastfm": [], "ouvintes": 6700},
+  {"id": "mock-006", "nome": "Raiz Profunda", "pais": "BR", "ano_formacao": 1978, "generos": ["mpb", "jazz"], "tags_lastfm": [], "ouvintes": 9800},
+  {"id": "mock-007", "nome": "Neon Frio", "pais": "BR", "ano_formacao": 2010, "generos": ["eletronica", "pop"], "tags_lastfm": [], "ouvintes": 31000},
+  {"id": "mock-008", "nome": "Sertão Elétrico", "pais": "BR", "ano_formacao": 2005, "generos": ["sertanejo", "country"], "tags_lastfm": [], "ouvintes": 45000},
+  {"id": "mock-009", "nome": "Corrente Azul", "pais": "BR", "ano_formacao": 1985, "generos": ["blues", "rock"], "tags_lastfm": [], "ouvintes": 5400},
+  {"id": "mock-010", "nome": "Alma Soul", "pais": "BR", "ano_formacao": 1993, "generos": ["soul", "funk"], "tags_lastfm": [], "ouvintes": 7300},
+  {"id": "mock-011", "nome": "Onda Reggae", "pais": "BR", "ano_formacao": 1987, "generos": ["reggae"], "tags_lastfm": [], "ouvintes": 11000},
+  {"id": "mock-012", "nome": "Baile Disco", "pais": "BR", "ano_formacao": 1979, "generos": ["disco", "pop"], "tags_lastfm": [], "ouvintes": 4200},
+  {"id": "mock-013", "nome": "Rima Urbana", "pais": "BR", "ano_formacao": 2008, "generos": ["hip hop"], "tags_lastfm": [], "ouvintes": 18500},
+  {"id": "mock-014", "nome": "Floresta Indie", "pais": "BR", "ano_formacao": 2012, "generos": ["indie", "rock"], "tags_lastfm": [], "ouvintes": 9100},
+  {"id": "mock-015", "nome": "Sinfonia do Norte", "pais": "BR", "ano_formacao": 1965, "generos": ["classica"], "tags_lastfm": [], "ouvintes": 3100},
+  {"id": "mock-016", "nome": "Forró do Vale", "pais": "BR", "ano_formacao": 1990, "generos": ["forro"], "tags_lastfm": [], "ouvintes": 26000},
+  {"id": "mock-017", "nome": "Improviso Jazz", "pais": "BR", "ano_formacao": 1982, "generos": ["jazz"], "tags_lastfm": [], "ouvintes": 4800},
+  {"id": "mock-018", "nome": "Punk da Esquina", "pais": "BR", "ano_formacao": 2002, "generos": ["punk"], "tags_lastfm": [], "ouvintes": 5600}
+]
