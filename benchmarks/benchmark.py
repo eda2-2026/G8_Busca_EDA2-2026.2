@@ -30,5 +30,5 @@ def rodar_benchmark_completo(caminho_dados, termos_teste):
 
 if __name__ == "__main__":
     termos = ["rock", "pop", "termo_inexistente"]
-    print("Testando Benchmark com o Mock de Dados:")
-    rodar_benchmark_completo("data/raw/mock_artistas.json", termos)
+    print("Testando Benchmark com o Dataset Real:")
+    rodar_benchmark_completo("data/processed/artistas.json", termos)

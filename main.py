@@ -1,6 +1,6 @@
 from src.search.busca import carregar_dados, busca_sequencial, construir_indice, busca_binaria, ids_para_artistas
 
-# 1. Carrega os 18 registros do mock
+# 1. Carrega o dataset real de artistas
 artistas = carregar_dados()
 
 # 2. Testa a Busca Sequencial
