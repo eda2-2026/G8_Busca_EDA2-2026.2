@@ -41,6 +41,26 @@ pip install -r requirements.txt
 python src/collect/musicbrainz.py   # testa a coleta de dados
 ```
 
+## 👥 Divisão de Tarefas (T1)
+
+O trabalho foi dividido em duas frentes atuando de forma paralela através do uso de um *mock* temporário, até a integração final dos dados reais:
+
+*   **Felipe Matheus Ribeiro Lopes:** Responsável pela integração com a API do MusicBrainz, script de extração estruturada, montagem do cache local em JSON e limpeza dos dados brutos.
+*   **Pedro Araujo Lucena:** Responsável pela lógica de pesquisa, implementando a Busca Sequencial, a construção do Índice Ordenado, a Busca Binária e os scripts parametrizados de Benchmark.
+
+## 📊 Resultados do Benchmark (T1)
+
+Comparamos o tempo de execução da Busca Sequencial ($O(n)$) e da Busca Binária ($O(\log n)$) utilizando o dataset real final coletado da API, que totalizou **553 artistas**. Os testes foram realizados calculando a média de 100 repetições para cada termo.
+
+| Termo Buscado | Busca Sequencial (ms) | Busca Binária (ms) |
+|---------------|-----------------------|--------------------|
+| `rock`        | 0.8572 ms             | 0.0045 ms          |
+| `pop`         | 0.8599 ms             | 0.0042 ms          |
+| `termo_inexistente` | 0.6867 ms       | 0.0033 ms          |
+
+**Conclusão:** 
+Como esperado pela teoria de complexidade, a Busca Binária se mostrou exponencialmente mais rápida (cerca de 190 a 200 vezes mais rápida) para todos os cenários. Isso confirma a eficiência e a necessidade de se construir um índice ordenado inicial quando o sistema precisará lidar com um volume alto de consultas frequentes.
+
 ## Integrantes
 
 - [Felipe Matheus Ribeiro Lopes]
