@@ -13,6 +13,10 @@ Um sistema de busca e indexação de artistas/bandas, com dados coletados via AP
 | T3 | Árvores | 16/11 | Índice reestruturado como árvore (BST/AVL/Trie) |
 | T4 | Grafos | 07/12 | Grafo de artistas conectados por gênero em comum |
 
+## Links dos vídeos de entrega
+
+T1 (Busca): https://youtu.be/cE65mJbQSSs
+
 ## Fonte de dados
 
 - **MusicBrainz API** — dados principais: nome, país, ano de formação, gêneros
