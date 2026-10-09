@@ -1,18 +1,32 @@
+import contextlib
+import csv
+import io
+import json
+import tempfile
 import unittest
 from copy import deepcopy
+from pathlib import Path
 
 from benchmarks.benchmark_ordenacao import (
+    ALGORITMOS,
+    CAMPOS_CSV,
     CENARIOS,
+    ErroValidacao,
     aplicar_cenario,
+    caminhos_derivados,
     chave,
+    criar_parser,
     deduplicar_por_id,
+    executar_caso,
     gerar_sintetico,
     identificar,
+    main,
     montar_bases,
     montar_casos,
+    resumir,
     tamanhos_catalogo,
 )
-
+from src.sort.merge import merge_sort
 
 def artistas_ficticios():
     return [
@@ -168,6 +182,182 @@ class TestCasos(unittest.TestCase):
         )
         todos_iguais = [c for c in casos if c["cenario"] == "todos_iguais"]
         self.assertTrue(all(c["chaves_distintas"] == 1 for c in todos_iguais))
+
+
+def caso_simples():
+    itens = registros([-40, -100, -40, -70])
+    return {
+        "caso_id": "teste-4-aleatorio",
+        "origem": "teste",
+        "n": 4,
+        "cenario": "aleatorio",
+        "semente": 1,
+        "chaves_distintas": 3,
+        "transformacao": "nenhuma",
+        "itens": itens,
+    }
+
+
+class TestMedicao(unittest.TestCase):
+    def test_gera_uma_linha_por_algoritmo_e_repeticao_alternando_a_ordem(self):
+        linhas = executar_caso(caso_simples(), 4)
+
+        self.assertEqual(len(linhas), 8)
+        self.assertEqual(
+            [(l["repeticao"], l["algoritmo"]) for l in linhas],
+            [(1, "merge"), (1, "insertion"),
+             (2, "insertion"), (2, "merge"),
+             (3, "merge"), (3, "insertion"),
+             (4, "insertion"), (4, "merge")],
+        )
+        for linha in linhas:
+            self.assertEqual(set(linha), set(CAMPOS_CSV))
+            self.assertIsInstance(linha["tempo_ms"], float)
+            self.assertGreaterEqual(linha["tempo_ms"], 0)
+
+    def test_nao_altera_a_entrada_do_caso(self):
+        caso = caso_simples()
+        original = deepcopy(caso["itens"])
+
+        executar_caso(caso, 2)
+
+        self.assertEqual(caso["itens"], original)
+
+    def test_algoritmo_instavel_interrompe_a_coleta(self):
+        def instavel(itens, key):
+            saida = merge_sort(itens, key)
+            return saida[:1] + list(reversed(saida[1:3])) + saida[3:]
+
+        with self.assertRaises(ErroValidacao):
+            executar_caso(caso_simples(), 2, {"instavel": instavel})
+
+    def test_algoritmo_que_altera_a_entrada_interrompe_a_coleta(self):
+        def destrutivo(itens, key):
+            itens.reverse()
+            return merge_sort(itens, key)
+
+        with self.assertRaises(ErroValidacao):
+            executar_caso(caso_simples(), 2, {"destrutivo": destrutivo})
+
+    def test_algoritmo_que_devolve_a_propria_lista_interrompe_a_coleta(self):
+        with self.assertRaises(ErroValidacao):
+            executar_caso(caso_simples(), 2, {"mesma_lista": lambda itens, key: itens})
+
+
+class TestResumo(unittest.TestCase):
+    def test_mediana_e_iqr_inclusivo(self):
+        linhas = [
+            {"origem": "o", "n": 4, "cenario": "c", "chaves_distintas": 2,
+             "algoritmo": nome, "tempo_ms": t}
+            for nome, tempos in (("insertion", [1.0, 2.0, 3.0, 4.0]), ("merge", [5.0, 5.0]))
+            for t in tempos
+        ]
+
+        resumo = resumir(linhas)
+
+        self.assertEqual(len(resumo), 1)
+        self.assertAlmostEqual(resumo[0]["algoritmos"]["insertion"]["mediana"], 2.5)
+        self.assertAlmostEqual(resumo[0]["algoritmos"]["insertion"]["iqr"], 1.5)
+        self.assertAlmostEqual(resumo[0]["algoritmos"]["merge"]["mediana"], 5.0)
+        self.assertAlmostEqual(resumo[0]["algoritmos"]["merge"]["iqr"], 0.0)
+
+
+class TestCaminhos(unittest.TestCase):
+    def test_saida_padrao(self):
+        caminhos = caminhos_derivados("benchmarks/resultados_t2.csv")
+
+        self.assertEqual(caminhos["ambiente"], Path("benchmarks/ambiente_t2.json"))
+        self.assertEqual(caminhos["entradas"], Path("benchmarks/entradas_t2.json"))
+        self.assertEqual(caminhos["resumo"], Path("benchmarks/resumo_t2.md"))
+
+    def test_ensaio_nao_sobrescreve_os_resultados_finais(self):
+        caminhos = caminhos_derivados("/tmp/ensaio_t2.csv")
+
+        self.assertEqual(caminhos["ambiente"], Path("/tmp/ensaio_t2_ambiente.json"))
+        self.assertEqual(caminhos["entradas"], Path("/tmp/ensaio_t2_entradas.json"))
+        self.assertEqual(caminhos["resumo"], Path("/tmp/ensaio_t2_resumo.md"))
+
+
+class TestCli(unittest.TestCase):
+    def setUp(self):
+        self.pasta = tempfile.TemporaryDirectory()
+        self.dir = Path(self.pasta.name)
+        self.dados = self.dir / "artistas.json"
+        self.dados.write_text(json.dumps(artistas_ficticios()), encoding="utf-8")
+
+    def tearDown(self):
+        self.pasta.cleanup()
+
+    def rodar(self, *opcoes):
+        argv = ["--dados", str(self.dados), "--repeticoes", "2",
+                "--tamanhos-sinteticos", "3", *opcoes]
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            return main(argv)
+
+    def test_execucao_completa_gera_os_quatro_arquivos(self):
+        saida = self.dir / "sub" / "ensaio.csv"
+
+        codigo = self.rodar("--saida", str(saida))
+
+        self.assertEqual(codigo, 0)
+        with open(saida, encoding="utf-8", newline="") as f:
+            leitor = csv.DictReader(f)
+            self.assertEqual(leitor.fieldnames, CAMPOS_CSV)
+            linhas = list(leitor)
+        # (1 consulta + 1 catálogo + 2 sintéticos) x 5 cenários x 2 algoritmos x 2 repetições
+        self.assertEqual(len(linhas), 80)
+        self.assertEqual({l["algoritmo"] for l in linhas}, set(ALGORITMOS))
+
+        caminhos = caminhos_derivados(saida)
+        ambiente = json.loads(caminhos["ambiente"].read_text(encoding="utf-8"))
+        entradas = json.loads(caminhos["entradas"].read_text(encoding="utf-8"))
+        resumo = caminhos["resumo"].read_text(encoding="utf-8")
+
+        self.assertEqual(len(ambiente["dataset_sha256"]), 64)
+        self.assertEqual(ambiente["configuracao"]["repeticoes"], 2)
+        self.assertEqual(len(entradas), 20)
+        self.assertEqual(entradas[0]["caso_id"], "consulta_real-5-aleatorio")
+        self.assertTrue(all(len(par) == 2 for par in entradas[0]["itens"]))
+        self.assertIn("| consulta_real | 5 | aleatorio |", resumo)
+
+    def test_termo_sem_resultados_registra_a_ausencia(self):
+        saida = self.dir / "vazio.csv"
+
+        codigo = self.rodar("--termo", "termo_inexistente", "--saida", str(saida))
+
+        self.assertEqual(codigo, 0)
+        ambiente = json.loads(caminhos_derivados(saida)["ambiente"].read_text(encoding="utf-8"))
+        self.assertEqual(len(ambiente["observacoes"]), 1)
+        self.assertIn("omitida", caminhos_derivados(saida)["resumo"].read_text(encoding="utf-8"))
+
+    def test_dados_inexistentes_retornam_erro_sem_csv(self):
+        saida = self.dir / "nada.csv"
+        self.dados = self.dir / "nao_existe.json"
+
+        codigo = self.rodar("--saida", str(saida))
+
+        self.assertEqual(codigo, 1)
+        self.assertFalse(saida.exists())
+
+    def test_opcoes_invalidas(self):
+        parser = criar_parser()
+        for argv in (["--repeticoes", "1"], ["--tamanhos-sinteticos", "0"],
+                     ["--tamanhos-sinteticos", "x"], ["--semente", "abc"]):
+            with self.subTest(argv=argv):
+                with contextlib.redirect_stderr(io.StringIO()):
+                    with self.assertRaises(SystemExit) as erro:
+                        parser.parse_args(argv)
+                self.assertEqual(erro.exception.code, 2)
+
+    def test_padroes_do_guia(self):
+        args = criar_parser().parse_args([])
+
+        self.assertEqual(args.dados, "data/processed/artistas.json")
+        self.assertEqual(args.termo, "rock")
+        self.assertEqual(args.repeticoes, 10)
+        self.assertEqual(args.tamanhos_sinteticos, [100, 500, 2000])
+        self.assertEqual(args.semente, 42)
+        self.assertEqual(args.saida, "benchmarks/resultados_t2.csv")
 
 
 if __name__ == "__main__":
