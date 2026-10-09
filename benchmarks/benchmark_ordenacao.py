@@ -177,6 +177,23 @@ def montar_casos(bases, semente):
     return casos
 
 
+
+def observar_casos(casos):
+    """Sinaliza casos em que os cenários pouco diferem, para o resumo não ser mal lido."""
+    observacoes = []
+    for caso in casos:
+        if caso["cenario"] == "aleatorio" and caso["chaves_distintas"] <= 2:
+            observacoes.append(
+                f"{caso['origem']}-{caso['n']}: apenas {caso['chaves_distintas']} chave(s) distinta(s); "
+                "com tantos empates, o cenário inverso não representa o pior caso do Insertion"
+            )
+        if caso.get("trocas_efetivas", 0) < caso.get("trocas_pedidas", 0):
+            observacoes.append(
+                f"{caso['caso_id']}: {caso['trocas_efetivas']} de {caso['trocas_pedidas']} "
+                "trocas efetivas (não há pares de chaves diferentes suficientes)"
+            )
+    return observacoes
+
 # --- Medição e validação ------------------------------------------------------
 
 def medir(algoritmo, entrada):
@@ -403,8 +420,9 @@ def executar(args, argv):
     }
     artistas = carregar_dados(args.dados)
     bases, observacoes = montar_bases(artistas, args.termo, args.tamanhos_sinteticos, args.semente)
-    ambiente = coletar_ambiente(args.dados, argv, configuracao, observacoes)
     casos = montar_casos(bases, args.semente)
+    observacoes += observar_casos(casos)
+    ambiente = coletar_ambiente(args.dados, argv, configuracao, observacoes)
 
     linhas = []
     for caso in casos:

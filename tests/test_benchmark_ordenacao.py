@@ -23,6 +23,7 @@ from benchmarks.benchmark_ordenacao import (
     main,
     montar_bases,
     montar_casos,
+    observar_casos,
     resumir,
     tamanhos_catalogo,
 )
@@ -327,7 +328,8 @@ class TestCli(unittest.TestCase):
 
         self.assertEqual(codigo, 0)
         ambiente = json.loads(caminhos_derivados(saida)["ambiente"].read_text(encoding="utf-8"))
-        self.assertEqual(len(ambiente["observacoes"]), 1)
+        omissoes = [o for o in ambiente["observacoes"] if o.startswith("consulta_real omitida")]
+        self.assertEqual(len(omissoes), 1)
         self.assertIn("omitida", caminhos_derivados(saida)["resumo"].read_text(encoding="utf-8"))
 
     def test_dados_inexistentes_retornam_erro_sem_csv(self):
@@ -358,6 +360,46 @@ class TestCli(unittest.TestCase):
         self.assertEqual(args.tamanhos_sinteticos, [100, 500, 2000])
         self.assertEqual(args.semente, 42)
         self.assertEqual(args.saida, "benchmarks/resultados_t2.csv")
+
+
+class TestObservacoes(unittest.TestCase):
+    def test_base_com_poucas_chaves_distintas_e_sinalizada(self):
+        casos = montar_casos([("consulta_real", registros([-40] * 5))], 42)
+
+        observacoes = observar_casos(casos)
+
+        self.assertTrue(any(
+            "consulta_real-5" in o and "1 chave(s) distinta(s)" in o for o in observacoes
+        ))
+
+    def test_troca_nao_efetiva_e_sinalizada(self):
+        casos = montar_casos([("teste", registros([-40] * 5))], 42)
+
+        observacoes = observar_casos(casos)
+
+        self.assertTrue(any(
+            "teste-5-quase_ordenado" in o and "0 de 1" in o for o in observacoes
+        ))
+
+    def test_base_variada_nao_gera_observacao(self):
+        casos = montar_casos([("teste", registros(list(range(250))))], 42)
+
+        self.assertEqual(observar_casos(casos), [])
+
+    def test_resumo_da_cli_explica_casos_degenerados(self):
+        with tempfile.TemporaryDirectory() as pasta:
+            dados = Path(pasta) / "artistas.json"
+            artistas = [{"id": f"x{i}", "nome": f"Banda {i}", "generos": ["rock"]} for i in range(4)]
+            dados.write_text(json.dumps(artistas), encoding="utf-8")
+            saida = Path(pasta) / "ensaio.csv"
+            with contextlib.redirect_stdout(io.StringIO()):
+                codigo = main(["--dados", str(dados), "--repeticoes", "2",
+                               "--tamanhos-sinteticos", "3", "--saida", str(saida)])
+
+            resumo = caminhos_derivados(saida)["resumo"].read_text(encoding="utf-8")
+
+        self.assertEqual(codigo, 0)
+        self.assertIn("> consulta_real-4: apenas 1 chave(s) distinta(s)", resumo)
 
 
 if __name__ == "__main__":
