@@ -1,0 +1,32 @@
+{
+  "python": "3.14.6 (main, Jun 11 2026, 00:00:00) [GCC 15.2.1 20260123 (Red Hat 15.2.1-7)]",
+  "implementacao": "CPython",
+  "sistema": "Linux-6.19.14-200.fc43.x86_64-x86_64-with-glibc2.42",
+  "processador": "AMD Ryzen 5 5500U with Radeon Graphics",
+  "git_revisao": "c8b94693cd064993d8028e48ffa7841506ce7f98",
+  "git_arvore": "limpa",
+  "dataset": "data/processed/artistas.json",
+  "dataset_sha256": "3af823fd32faf392d7cda1771937c829bb0de3e98179266ce0beaa4679f89825",
+  "comando": "python -m benchmarks.benchmark_ordenacao --dados data/processed/artistas.json --termo rock --repeticoes 10 --tamanhos-sinteticos 100 500 2000 --semente 42 --saida benchmarks/resultados_t2.csv",
+  "configuracao": {
+    "dados": "data/processed/artistas.json",
+    "termo": "rock",
+    "repeticoes": 10,
+    "tamanhos_sinteticos": [
+      100,
+      500,
+      2000
+    ],
+    "semente": 42,
+    "saida": "benchmarks/resultados_t2.csv"
+  },
+  "selecao_catalogo": "prefixos do JSON original (100, 300 e total disponíveis); não é uma amostra estatisticamente representativa",
+  "observacoes": [
+    "consulta_real-35: apenas 1 chave(s) distinta(s); com tantos empates, o cenário inverso não representa o pior caso do Insertion",
+    "consulta_real-35-quase_ordenado: 0 de 1 trocas efetivas (não há pares de chaves diferentes suficientes)",
+    "catalogo_real-100: apenas 2 chave(s) distinta(s); com tantos empates, o cenário inverso não representa o pior caso do Insertion",
+    "catalogo_real-300: apenas 2 chave(s) distinta(s); com tantos empates, o cenário inverso não representa o pior caso do Insertion",
+    "catalogo_real-553: apenas 2 chave(s) distinta(s); com tantos empates, o cenário inverso não representa o pior caso do Insertion"
+  ],
+  "data_execucao": "2026-10-09T00:50:30+00:00"
+}
