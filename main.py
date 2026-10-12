@@ -3,6 +3,7 @@ import json
 
 from src.search.busca import carregar_dados
 from src.servico import pesquisar_e_ordenar
+from src.sort.api import ALGORITMOS
 
 
 def inteiro_positivo(valor):
@@ -28,6 +29,11 @@ def main():
         choices=["sequencial", "binaria"],
         default="sequencial",
     )
+    parser.add_argument(
+        "--algoritmo",
+        choices=list(ALGORITMOS),
+        default="merge",
+    )
     parser.add_argument("--limite", type=inteiro_positivo, default=10)
     parser.add_argument(
         "--dados",
@@ -45,9 +51,10 @@ def main():
         artistas,
         args.termo,
         busca=args.busca,
+        algoritmo=args.algoritmo,
     )
 
-    print(f"Busca: {args.busca} | Ordenação: Insertion Sort")
+    print(f"Busca: {args.busca} | Ordenação: {args.algoritmo.title()} Sort")
     print(f"Total encontrado: {len(resultados)}")
 
     if not resultados:

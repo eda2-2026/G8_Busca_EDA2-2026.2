@@ -5,12 +5,15 @@ from src.search.busca import (
     ids_para_artistas,
 )
 from src.ranking.relevancia import preparar_resultados
-from src.sort.insertion import insertion_sort
+from src.sort.api import ALGORITMOS, ordenar
 
 
-def pesquisar_e_ordenar(artistas, termo, busca="sequencial"):
+def pesquisar_e_ordenar(artistas, termo, busca="sequencial", algoritmo="merge"):
     if busca not in ("sequencial", "binaria"):
         raise ValueError("Busca deve ser 'sequencial' ou 'binaria'.")
+
+    if algoritmo not in ALGORITMOS:
+        raise ValueError("Algoritmo deve ser 'insertion' ou 'merge'.")
 
     termo = termo.strip().lower()
 
@@ -33,7 +36,8 @@ def pesquisar_e_ordenar(artistas, termo, busca="sequencial"):
 
     resultados = preparar_resultados(unicos, termo)
 
-    return insertion_sort(
+    return ordenar(
         resultados,
+        algoritmo,
         key=lambda item: item["chave"],
     )

@@ -80,6 +80,43 @@ class TestCLI(unittest.TestCase):
         resultado = self.executar("--busca", "invalida")
         self.assertNotEqual(resultado.returncode, 0)
 
+    def test_merge_e_o_padrao(self):
+        resultado = self.executar("--termo", "rock")
+        self.assertEqual(resultado.returncode, 0, resultado.stderr)
+        self.assertIn("Ordenação: Merge Sort", resultado.stdout)
+
+    def test_seleciona_algoritmos_e_preserva_empates(self):
+        artistas = [
+            {"id": "a", "nome": "Queen", "generos": ["rock"]},
+            {"id": "b", "nome": "Rock", "generos": ["rock"]},
+            {"id": "c", "nome": "Outra Banda", "generos": ["rock"]},
+        ]
+        self.dados.write_text(json.dumps(artistas), encoding="utf-8")
+
+        for busca in ("sequencial", "binaria"):
+            saidas = []
+            for algoritmo in ("insertion", "merge"):
+                with self.subTest(busca=busca, algoritmo=algoritmo):
+                    resultado = self.executar(
+                        "--termo", "rock", "--busca", busca,
+                        "--algoritmo", algoritmo,
+                    )
+                    self.assertEqual(resultado.returncode, 0, resultado.stderr)
+                    self.assertIn(
+                        f"Ordenação: {algoritmo.title()} Sort", resultado.stdout
+                    )
+                    linhas = resultado.stdout.splitlines()[1:]
+                    saidas.append(linhas)
+                    self.assertIn("1. Rock | Score: 100", linhas[1])
+                    self.assertIn("2. Queen | Score: 40", linhas[2])
+                    self.assertIn("3. Outra Banda | Score: 40", linhas[3])
+            self.assertEqual(saidas[0], saidas[1])
+
+    def test_rejeita_algoritmo_invalido(self):
+        resultado = self.executar("--algoritmo", "invalido", "--termo", "")
+        self.assertNotEqual(resultado.returncode, 0)
+        self.assertIn("--algoritmo", resultado.stderr)
+
     def test_arquivo_inexistente(self):
         self.dados.unlink()
 
@@ -105,4 +142,3 @@ class TestCLI(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

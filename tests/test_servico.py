@@ -102,6 +102,42 @@ class TestServico(unittest.TestCase):
                 busca="invalida",
             )
 
+    def test_algoritmos_produzem_mesma_lista_inclusive_empates(self):
+        self.artistas.append(
+            {"id": "e", "nome": "Outra Banda", "generos": ["rock"]}
+        )
+        original = deepcopy(self.artistas)
+
+        for busca in ("sequencial", "binaria"):
+            for termo, ids_esperados in (
+                ("rock", ["c", "b", "a", "e"]),
+                ("   ", ["a", "b", "c", "d", "e"]),
+                ("xyz_inexistente", []),
+            ):
+                with self.subTest(busca=busca, termo=termo):
+                    saidas = [
+                        pesquisar_e_ordenar(
+                            self.artistas, termo, busca=busca,
+                            algoritmo=algoritmo,
+                        )
+                        for algoritmo in ("insertion", "merge")
+                    ]
+                    self.assertEqual(saidas[0], saidas[1])
+                    self.assertEqual(
+                        [r["artista"]["id"] for r in saidas[0]],
+                        ids_esperados,
+                    )
+                    self.assertEqual(self.artistas, original)
+
+    def test_rejeita_algoritmo_invalido_mesmo_sem_resultados(self):
+        for artistas in (self.artistas, []):
+            for termo in ("rock", "", "xyz_inexistente"):
+                with self.subTest(n=len(artistas), termo=termo):
+                    with self.assertRaisesRegex(ValueError, "Algoritmo"):
+                        pesquisar_e_ordenar(
+                            artistas, termo, algoritmo="invalido"
+                        )
+
 
 if __name__ == "__main__":
     unittest.main()
