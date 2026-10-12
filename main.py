@@ -1,22 +1,79 @@
-from src.search.busca import carregar_dados, busca_sequencial, construir_indice, busca_binaria, ids_para_artistas
+import argparse
+import json
 
-# 1. Carrega o dataset real de artistas
-artistas = carregar_dados()
+from src.search.busca import carregar_dados
+from src.servico import pesquisar_e_ordenar
+from src.sort.api import ALGORITMOS
 
-# 2. Testa a Busca Sequencial
-print("--- BUSCA SEQUENCIAL: 'rock' ---")
-resultados_seq = busca_sequencial(artistas, "rock")
-for r in resultados_seq:
-    print(f"- {r['nome']} (Gêneros: {r['generos']})")
 
-# 3. Testa a Busca Binária
-print("\n--- BUSCA BINÁRIA: 'rock' ---")
-indice = construir_indice(artistas)
-ids_encontrados = busca_binaria(indice, "rock")
-resultados_bin = ids_para_artistas(ids_encontrados, artistas)
-for r in resultados_bin:
-    print(f"- {r['nome']} (Gêneros: {r['generos']})")
+def inteiro_positivo(valor):
+    try:
+        numero = int(valor)
+    except ValueError:
+        raise argparse.ArgumentTypeError("Informe um número inteiro.")
 
-# 4. Testa termo inexistente e string vazia
-print(f"\nBusca Sequencial por 'kpop': {busca_sequencial(artistas, 'kpop')}")
-print(f"Busca Sequencial por string vazia: {len(busca_sequencial(artistas, ''))} encontrados")
+    if numero <= 0:
+        raise argparse.ArgumentTypeError("O limite deve ser maior que zero.")
+
+    return numero
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Motor de busca musical com ranking por relevância."
+    )
+
+    parser.add_argument("--termo", default="")
+    parser.add_argument(
+        "--busca",
+        choices=["sequencial", "binaria"],
+        default="sequencial",
+    )
+    parser.add_argument(
+        "--algoritmo",
+        choices=list(ALGORITMOS),
+        default="merge",
+    )
+    parser.add_argument("--limite", type=inteiro_positivo, default=10)
+    parser.add_argument(
+        "--dados",
+        default="data/processed/artistas.json",
+    )
+
+    args = parser.parse_args()
+
+    try:
+        artistas = carregar_dados(args.dados)
+    except (OSError, json.JSONDecodeError, UnicodeError) as erro:
+        parser.error(f"Não foi possível carregar os dados: {erro}")
+
+    resultados = pesquisar_e_ordenar(
+        artistas,
+        args.termo,
+        busca=args.busca,
+        algoritmo=args.algoritmo,
+    )
+
+    print(f"Busca: {args.busca} | Ordenação: {args.algoritmo.title()} Sort")
+    print(f"Total encontrado: {len(resultados)}")
+
+    if not resultados:
+        print("Nenhum artista encontrado.")
+        return
+
+    for posicao, resultado in enumerate(
+        resultados[:args.limite],
+        start=1,
+    ):
+        artista = resultado["artista"]
+        generos = ", ".join(artista["generos"]) or "Não informado"
+
+        print(
+            f"{posicao}. {artista['nome']} "
+            f"| Score: {resultado['score']} "
+            f"| Gêneros: {generos}"
+        )
+
+
+if __name__ == "__main__":
+    main()
