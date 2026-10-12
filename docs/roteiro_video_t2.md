@@ -1,7 +1,7 @@
 # Roteiro do vídeo T2 (5 minutos)
 
 **Formato:** terminal legível (fonte grande) e os dois falando. Nada de ler código linha por linha.
-**Antes de gravar:** a CLI do Pedro (A5) precisa estar integrada para a demonstração, e os números citados abaixo vêm de `benchmarks/resumo_t2.md`.
+**Antes de gravar:** a CLI com `--algoritmo` já está na `main` (rode `git pull`); os números citados abaixo vêm de `benchmarks/resumo_t2.md`.
 
 | Tempo | Quem | Conteúdo |
 |---|---|---|

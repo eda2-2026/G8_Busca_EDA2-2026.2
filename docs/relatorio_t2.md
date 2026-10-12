@@ -73,7 +73,7 @@ Aqui `n` é a quantidade de itens ordenados, não o tamanho do catálogo. Uma bu
 
 ## 5. Integração
 
-O fluxo previsto é busca → score → ordenação → limite de apresentação. O limite só é aplicado depois de ordenar, e o dataset nunca é alterado. A integração com as buscas do T1 (`src/servico.py`, adaptador `src/sort/api.py`) e a CLI com escolha de busca e algoritmo (`main.py`) são as etapas A4–A5, a cargo de Pedro. Os testes de `tests/test_ordenacao.py` já cobrem o adaptador e passam a rodar automaticamente quando `src/sort/api.py` for integrado. Até lá, ficam marcados como *skipped*.
+O fluxo é busca → score → ordenação → limite de apresentação. O limite só é aplicado depois de ordenar, e o dataset nunca é alterado. `src/servico.py` (`pesquisar_e_ordenar`) liga as buscas do T1 ao ranking e ao algoritmo escolhido; o adaptador `src/sort/api.py` registra `insertion` e `merge` e rejeita nomes desconhecidos com `ValueError`; e `main.py` expõe tudo na CLI (`--termo`, `--busca`, `--algoritmo`, `--limite`, `--dados`). Os testes de `tests/test_ordenacao.py`, `tests/test_servico.py` e `tests/test_cli.py` cobrem essa integração, e a mesma busca produz listas idênticas com os dois algoritmos, inclusive nos empates.
 
 As buscas sequencial e binária não são equivalentes: a sequencial aceita substring no nome, e a binária procura a chave completa no índice. A comparação entre Insertion e Merge sempre usa **a mesma lista**, produzida por uma única busca.
 
