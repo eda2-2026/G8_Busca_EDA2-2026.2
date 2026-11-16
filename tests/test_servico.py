@@ -2,6 +2,7 @@ import unittest
 from copy import deepcopy
 
 from src.servico import pesquisar_e_ordenar
+from src.tree.api import INDICES
 
 
 class TestServico(unittest.TestCase):
@@ -137,6 +138,59 @@ class TestServico(unittest.TestCase):
                         pesquisar_e_ordenar(
                             artistas, termo, algoritmo="invalido"
                         )
+
+    def test_arvores_iguais_a_binaria(self):
+        self.artistas.append(
+            {"id": "e", "nome": "Queen Cover", "generos": ["rock", "queen"]}
+        )
+        original = deepcopy(self.artistas)
+
+        for busca in ("bst", "avl"):
+            for termo in ("rock", "samba trio", "xyz_inexistente", "  ROCK ", "Queen"):
+                with self.subTest(busca=busca, termo=termo):
+                    esperado = pesquisar_e_ordenar(
+                        self.artistas, termo, busca="binaria"
+                    )
+                    obtido = pesquisar_e_ordenar(
+                        self.artistas, termo, busca=busca
+                    )
+                    self.assertEqual(obtido, esperado)
+                    self.assertEqual(self.artistas, original)
+
+    def test_arvores_com_termo_vazio_listam_todos(self):
+        for busca in ("bst", "avl"):
+            with self.subTest(busca=busca):
+                resultados = pesquisar_e_ordenar(
+                    self.artistas, "   ", busca=busca
+                )
+                self.assertEqual(
+                    [r["artista"]["id"] for r in resultados],
+                    ["a", "b", "c", "d"],
+                )
+
+    @unittest.skipIf("trie" in INDICES, "Trie já registrada")
+    def test_sem_trie_prefixo_e_trie_levantam_erro(self):
+        with self.assertRaisesRegex(ValueError, "Busca por prefixo requer a Trie."):
+            pesquisar_e_ordenar(self.artistas, "ro", busca="prefixo")
+        with self.assertRaisesRegex(ValueError, "requer a Trie"):
+            pesquisar_e_ordenar(self.artistas, "rock", busca="trie")
+
+    @unittest.skipUnless("trie" in INDICES, "Trie ainda não registrada")
+    def test_trie_igual_a_binaria(self):
+        for termo in ("rock", "samba trio", "xyz_inexistente", "  ROCK "):
+            with self.subTest(termo=termo):
+                self.assertEqual(
+                    pesquisar_e_ordenar(self.artistas, termo, busca="trie"),
+                    pesquisar_e_ordenar(self.artistas, termo, busca="binaria"),
+                )
+
+    @unittest.skipUnless("trie" in INDICES, "Trie ainda não registrada")
+    def test_prefixo_encontra_por_inicio_da_chave(self):
+        resultados = pesquisar_e_ordenar(self.artistas, "ro", busca="prefixo")
+        ids = {r["artista"]["id"] for r in resultados}
+        self.assertIn("b", ids)  # Rock Trio
+        self.assertIn("c", ids)  # Rock
+        self.assertNotIn("d", ids)  # Samba Trio
 
 
 if __name__ == "__main__":

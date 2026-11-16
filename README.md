@@ -57,12 +57,15 @@ python src/collect/musicbrainz.py   # testa a coleta de dados
 python main.py --termo rock --busca sequencial --algoritmo merge --limite 10
 python main.py --termo rock --busca binaria --algoritmo insertion
 python main.py --termo "" --limite 5     # sem termo: lista todo o catálogo
+python main.py --termo rock --busca avl
+python main.py --termo rock --busca bst --algoritmo insertion
+python main.py --termo ro --busca prefixo      # precisa da Trie
 ```
 
 | Opção | Valores | Padrão |
 |---|---|---|
 | `--termo` | texto da consulta | vazio |
-| `--busca` | `sequencial` ou `binaria` | `sequencial` |
+| `--busca` | `sequencial`, `binaria`, `bst`, `avl`, `trie` ou `prefixo` | `sequencial` |
 | `--algoritmo` | `insertion` ou `merge` | `merge` |
 | `--limite` | inteiro positivo (só limita a exibição, depois de ordenar) | `10` |
 | `--dados` | caminho do JSON | `data/processed/artistas.json` |
