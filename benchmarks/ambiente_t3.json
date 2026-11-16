@@ -1,0 +1,35 @@
+{
+  "python": "3.14.6 (main, Jun 11 2026, 00:00:00) [GCC 15.2.1 20260123 (Red Hat 15.2.1-7)]",
+  "implementacao": "CPython",
+  "sistema": "Linux-6.19.14-200.fc43.x86_64-x86_64-with-glibc2.42",
+  "processador": "AMD Ryzen 5 5500U with Radeon Graphics",
+  "git_revisao": "5d5bfb17a1b1cfaf72fe5cd7d91ba1fd33e4cc61",
+  "git_arvore": "limpa",
+  "dataset": "data/processed/artistas.json",
+  "dataset_sha256": "3af823fd32faf392d7cda1771937c829bb0de3e98179266ce0beaa4679f89825",
+  "comando": "python -m benchmarks.benchmark_arvores --dados data/processed/artistas.json --repeticoes 10 --tamanhos-sinteticos 1000 5000 20000 --consultas 200 --semente 42 --saida benchmarks/resultados_t3.csv",
+  "configuracao": {
+    "dados": "data/processed/artistas.json",
+    "repeticoes": 10,
+    "tamanhos_sinteticos": [
+      1000,
+      5000,
+      20000
+    ],
+    "consultas": 200,
+    "semente": 42,
+    "saida": "benchmarks/resultados_t3.csv",
+    "estruturas": [
+      "lista_ordenada",
+      "bst",
+      "avl",
+      "trie"
+    ],
+    "limite_bst_ordenada": 5000
+  },
+  "observacoes": [
+    "sintetico-20000-ordenado: BST fora do caso (n > 5000 com chaves em ordem degenera a árvore em lista; inserção O(n) por chave)",
+    "sintetico-20000-quase_ordenado: BST fora do caso (n > 5000 com chaves em ordem degenera a árvore em lista; inserção O(n) por chave)"
+  ],
+  "data_execucao": "2026-11-16T23:32:06+00:00"
+}
