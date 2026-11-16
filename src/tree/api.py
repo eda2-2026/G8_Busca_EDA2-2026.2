@@ -1,10 +1,12 @@
 from src.tree.avl import AVL
 from src.tree.bst import BST
+from src.tree.trie import Trie
 
 
 INDICES = {
     "bst": BST,
     "avl": AVL,
+    "trie": Trie,
 }
 
 
