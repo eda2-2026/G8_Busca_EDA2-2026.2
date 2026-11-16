@@ -19,6 +19,8 @@ T1 (Busca): https://youtu.be/cE65mJbQSSs
 
 T2 (Ordenação): _a definir após a gravação_
 
+T3 (Árvores): _a definir após a gravação_
+
 ## Fonte de dados
 
 - **MusicBrainz API** — dados principais: nome, país, ano de formação, gêneros
@@ -36,9 +38,9 @@ T2 (Ordenação): _a definir após a gravação_
 │   ├── ranking/       # cálculo de relevância (T2)
 │   ├── sort/          # Insertion Sort, Merge Sort e adaptador (T2)
 │   ├── servico.py     # busca + ranking + ordenação (T2)
-│   ├── tree/          # estrutura de árvore (T3)
+│   ├── tree/          # BST, AVL, Trie e registro dos índices (T3)
 │   └── graph/         # grafo de artistas (T4)
-├── benchmarks/        # scripts e resultados de comparação de desempenho (T1 e T2)
+├── benchmarks/        # scripts e resultados de comparação de desempenho (T1, T2 e T3)
 ├── tests/             # testes unitários (unittest)
 ├── main.py            # CLI do motor de busca
 └── docs/              # relatórios e decisões de cada entrega
@@ -59,7 +61,7 @@ python main.py --termo rock --busca binaria --algoritmo insertion
 python main.py --termo "" --limite 5     # sem termo: lista todo o catálogo
 python main.py --termo rock --busca avl
 python main.py --termo rock --busca bst --algoritmo insertion
-python main.py --termo ro --busca prefixo      # precisa da Trie
+python main.py --termo ro --busca prefixo      # busca por prefixo (Trie)
 ```
 
 | Opção | Valores | Padrão |
@@ -80,6 +82,16 @@ python -m benchmarks.benchmark_ordenacao --repeticoes 2 --tamanhos-sinteticos 10
 
 # coleta final (regera benchmarks/*_t2.*)
 python -m benchmarks.benchmark_ordenacao --dados data/processed/artistas.json --termo rock --repeticoes 10 --tamanhos-sinteticos 100 500 2000 --semente 42 --saida benchmarks/resultados_t2.csv
+```
+
+### Benchmark do T3
+
+```bash
+# ensaio rápido (grava fora do repositório)
+python -m benchmarks.benchmark_arvores --repeticoes 2 --tamanhos-sinteticos 1000 --saida /tmp/ensaio_t3.csv
+
+# coleta final (regera benchmarks/*_t3.*)
+python -m benchmarks.benchmark_arvores --dados data/processed/artistas.json --repeticoes 10 --tamanhos-sinteticos 1000 5000 20000 --consultas 200 --semente 42 --saida benchmarks/resultados_t3.csv
 ```
 
 ## 👥 Divisão de Tarefas (T1)
@@ -125,6 +137,42 @@ Insertion Sort ($O(n^2)$) × Merge Sort ($O(n \log n)$) em origens reais (consul
 | sintético (faixa ampla) | 2000 | 84.24 | 3.956 |
 
 **Conclusão:** o Insertion Sort vence em listas pequenas, já ordenadas ou quase ordenadas (menos sobrecarga, melhor caso $O(n)$) e em dados com poucas chaves distintas, como o catálogo real, que tem só 2 (n = 553: 0.61 contra 0.66 ms). Com chaves variadas, o Merge Sort já ganha a partir de n = 100 e chega a ser ~21 vezes mais rápido com n = 2000 (84.24 contra 3.956 ms). Para as consultas reais do projeto a diferença absoluta é de décimos de milissegundo, mas o Merge garante $O(n \log n)$ se o catálogo crescer ou o ranking ganhar mais níveis de pontuação. A análise completa, com metodologia e limitações, está em [`docs/relatorio_t2.md`](docs/relatorio_t2.md); o roteiro do vídeo está em [`docs/roteiro_video_t2.md`](docs/roteiro_video_t2.md).
+
+## 👥 Divisão de Tarefas (T3)
+
+*   **Pedro Araujo Lucena:** BST iterativa (`src/tree/bst.py`), AVL com rotações (`src/tree/avl.py`), registro e construção dos índices (`src/tree/api.py`) e integração no serviço e na CLI (`src/servico.py`, `main.py`).
+*   **Felipe Matheus Ribeiro Lopes:** Trie com busca por prefixo (`src/tree/trie.py`), testes cruzados das árvores (`tests/test_arvores_contrato.py`), benchmark reproduzível (`benchmarks/benchmark_arvores.py`), coleta dos resultados, relatório e roteiro do vídeo.
+
+## 🌳 Árvores do índice (T3)
+
+O índice do T1 (lista ordenada de chaves de nome e gênero + busca binária) ganhou três versões em árvore, todas com as mesmas 979 chaves e o mesmo resultado da busca binária:
+
+| Árvore | Busca exata | Para quê |
+|---|---|---|
+| **BST** (sem balanceamento) | O(h); h = n no pior caso | Mostrar o caso ruim: com chaves inseridas em ordem, vira uma lista. É iterativa, para não estourar a recursão do Python |
+| **AVL** | O(log n) | Altura garantida com rotações LL, RR, LR e RL |
+| **Trie** | O(m), m = tamanho do termo | Busca exata e **por prefixo** (`--busca prefixo --termo ro`) |
+
+O ranking e a ordenação do T2 continuam iguais; as árvores só trocam a etapa de busca. Na busca por prefixo, o score do T2 (que pontua gênero **igual** ao termo) deixa a maioria dos resultados com 0; isso está registrado como limitação no relatório.
+
+## 📊 Resultados do Benchmark (T3)
+
+Lista ordenada (T1) × BST × AVL × Trie, com as chaves reais (979) e sintéticas (1000, 5000 e 20.000), inseridas em ordem aleatória, ordenada e quase ordenada. Cada caso tem 1 aquecimento descartado e 10 repetições (medianas abaixo). Dados completos em `benchmarks/resultados_t3.csv` e `benchmarks/resumo_t3.md`.
+
+| Caso | Altura BST | Altura AVL | Busca exata BST (µs) | Busca exata AVL (µs) | Construção BST (ms) | Construção AVL (ms) |
+|---|---:|---:|---:|---:|---:|---:|
+| reais, ordem do JSON | 39 | 12 | 0.86 | 0.64 | 1.95 | 6.70 |
+| reais, ordenadas | 979 | 10 | 24.0 | 0.78 | 54.2 | 7.47 |
+| 5000 sintéticas, ordenadas | 5000 | 13 | 116.0 | 1.43 | 564.3 | 22.0 |
+
+| Busca por prefixo (µs) | 1 letra | 2 letras | 3 letras |
+|---|---:|---:|---:|
+| Trie, chaves reais | 120.5 | 19.0 | 8.9 |
+| Varredura linear, chaves reais | 47.2 | 30.6 | 29.2 |
+| Trie, 20.000 chaves | 1119 | 48.3 | 6.0 |
+| Varredura linear, 20.000 chaves | 1861 | 1596 | 1349 |
+
+**Conclusão:** a BST degenera exatamente como a teoria prevê. Com chaves em ordem, ela vira uma lista, e a busca fica cerca de 80 vezes mais lenta que na AVL. A AVL paga mais para construir, mas mantém a altura entre 10 e 17 em todos os casos. A Trie é a estrutura certa para busca por prefixo: com 2 ou 3 letras ela ganha da varredura (de 1,6 a 3,3 vezes nos dados reais, dezenas a centenas de vezes com 20.000 chaves). Com 1 letra, nos dados reais, ela perde, e usa cerca de 8 vezes mais nós que a AVL. A lista ordenada do T1 continua a mais rápida de construir (o `sorted` é feito em C); a vantagem das árvores está em inserir chaves sem reordenar tudo. A análise completa está em [`docs/relatorio_t3.md`](docs/relatorio_t3.md); o roteiro do vídeo está em [`docs/roteiro_video_t3.md`](docs/roteiro_video_t3.md).
 
 ## Integrantes
 

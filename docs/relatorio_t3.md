@@ -4,8 +4,6 @@
 **Etapa:** T3, Árvores
 **Dupla:** Felipe Matheus Ribeiro Lopes e Pedro Araujo Lucena
 
-> **Rascunho.** Os números das seções 7 e 8 vêm de um **ensaio** (3 repetições, código da branch `t3/pessoa-a` mais a Trie). Eles serão substituídos pela coleta final (10 repetições, `main` integrada), sem mudar a estrutura do texto. Onde a conclusão depender do número final, o texto será revisto.
-
 ## 1. Objetivo
 
 No T1 o índice de busca é uma **lista ordenada** de chaves (nome e gêneros), consultada por busca binária. Ela tem dois limites: para inserir uma chave nova é preciso reordenar ou deslocar a lista, e a busca só encontra a chave **completa**. O T3 troca esse índice por árvores:
@@ -74,16 +72,23 @@ Nas comparações de string, "O(log n) comparações" esconde o custo de compara
 
 ## 5. Integração
 
-Pedro integrou as árvores em `src/servico.py`: `pesquisar_e_ordenar` aceita `busca` igual a `sequencial`, `binaria`, `bst`, `avl`, `trie` ou `prefixo`. As quatro últimas montam o índice com `construir_arvore`, buscam os ids e seguem para o ranking e a ordenação do T2, sem nenhuma mudança neles. A CLI expõe as opções novas:
+Pedro integrou as árvores em `src/servico.py`: `pesquisar_e_ordenar` aceita `busca` igual a `sequencial`, `binaria`, `bst`, `avl`, `trie` ou `prefixo`. O serviço normaliza o termo (`strip().lower()`) uma vez. As quatro últimas opções montam o índice com `construir_arvore`, buscam os ids e seguem para o ranking e a ordenação do T2, sem mudança nenhuma neles. As árvores não normalizam por conta própria: recebem as chaves e os termos já normalizados, e as três se comportam igual nisso. A CLI expõe as opções novas, e um erro de busca vira mensagem do `argparse`, sem traceback:
 
 ```bash
 python main.py --busca avl --termo rock
-python main.py --busca prefixo --termo ro --limite 10
+python main.py --busca prefixo --termo samb --limite 5
 ```
 
-<!-- TODO(B5): conferir os comandos e a saída da CLI depois do PR do Pedro (etapa A5). -->
+```text
+Busca: prefixo | Ordenação: Merge Sort
+Total encontrado: 65
+1. Os Originais do Samba | Score: 30 | Gêneros: samba
+2. Adriana Calcanhotto | Score: 0 | Gêneros: mpb, brazilian, bossa nova, samba, ...
+```
 
-`tests/test_arvores_contrato.py` verifica que, para todas as 979 chaves reais e para termos ausentes, BST, AVL e Trie devolvem os mesmos ids que a busca binária do T1, e que `buscar_prefixo` devolve o mesmo que a varredura linear.
+`tests/test_arvores_contrato.py` verifica que, para as 979 chaves reais e para 20 termos ausentes, BST, AVL e Trie devolvem os mesmos ids que a busca binária do T1 (sem repetições). Também verifica que `buscar_prefixo` devolve o mesmo que a varredura linear para todos os prefixos reais de 1 a 3 letras. Foi um teste desse tipo, escrito pelo Pedro, que mostrou que a Trie normalizava os termos e as outras árvores não. A Trie foi ajustada.
+
+**Limitação do ranking na busca por prefixo:** o score do T2 dá +40 só para gênero **igual** ao termo e +30 para nome que **contém** o termo. Numa busca por prefixo, o termo raramente é um gênero completo. Com `ro`, 41 dos 56 artistas encontrados ficam com score 0 e 15 com score 30. Com `samb`, 64 de 65 ficam com 0. A busca encontra os artistas certos, mas o ranking quase não os diferencia, e os empates seguem a ordem alfabética das chaves (o Merge Sort é estável). Um score próprio para prefixo (por exemplo, pontos para gênero que **começa** com o termo) fica como trabalho futuro.
 
 ## 6. Metodologia
 
@@ -100,7 +105,7 @@ python -m benchmarks.benchmark_arvores --dados data/processed/artistas.json --re
 | `real` | As 2312 inserções (979 chaves distintas) de nome e gêneros, como em `construir_arvore` | Uso real do motor |
 | `sintetico` | 1000, 5000 e 20.000 chaves distintas, palavras aleatórias de 3 a 12 letras (`a`–`z`) | Ver o crescimento com n |
 
-**Cenários (ordem de inserção):** os dados reais entram em `original` (a ordem do JSON, que já vem **ordenado por nome**), `aleatorio` e `ordenado`. Os sintéticos entram em `aleatorio`, `ordenado` e `quase_ordenado` (ordenado com n/20 trocas próximas). A BST fica fora dos casos ordenado e quase ordenado com n > 5000: ali ela é uma lista, cada inserção custa O(n), e o caso levaria minutos sem mostrar nada novo. A exclusão é registrada no resumo.
+**Cenários (ordem de inserção):** os dados reais entram em `original` (a ordem do JSON, que já vem **ordenado por nome**), `aleatorio` e `ordenado`. Os sintéticos entram em `aleatorio`, `ordenado` e `quase_ordenado` (ordenado com n/20 trocas próximas). A BST fica fora dos casos ordenado e quase ordenado com n > 5000: ali ela é uma lista, cada inserção custa O(n), e o caso levaria minutos sem mostrar nada novo. A exclusão fica registrada no resumo.
 
 **Consultas:** 200 buscas exatas por base (metade de chaves presentes, sorteadas; metade de palavras ausentes) e 30 prefixos de 1, 2 e 3 letras, sorteados entre as chaves. As mesmas consultas valem para todas as estruturas e para os três cenários da mesma base.
 
@@ -108,17 +113,16 @@ python -m benchmarks.benchmark_arvores --dados data/processed/artistas.json --re
 
 - Cada estrutura é construída a partir da **mesma** sequência de pares (chave, id). O cronômetro (`time.perf_counter_ns()`) mede a construção completa e, separadamente, o lote de buscas, dividido pelo número de buscas (µs por busca).
 - Antes de medir, fora do cronômetro, todas as estruturas são comparadas com a lista ordenada em todas as consultas exatas, e a Trie com a varredura em todos os prefixos. Qualquer divergência interrompe a coleta.
-- 1 aquecimento descartado e 10 repetições. Resumo com mediana e IQR (Q3 − Q1, quartis inclusivos), como no T2.
-- A altura é determinística e registrada uma vez por caso.
-- As sementes de cada caso são derivadas da semente base 42 por SHA-256, como no T2. `entradas_t3.json` guarda, por caso, o hash da sequência inserida, as primeiras chaves e todas as consultas; as chaves sintéticas são regeneradas pela semente.
+- 1 aquecimento descartado e 10 repetições. O resumo usa mediana e IQR (Q3 − Q1, quartis inclusivos), como no T2.
+- A altura é determinística e é registrada uma vez por caso.
+- As sementes de cada caso são derivadas da semente base 42 por SHA-256, como no T2. `entradas_t3.json` guarda, por caso, o hash da sequência inserida, as primeiras chaves e todas as consultas. As chaves sintéticas são regeneradas pela semente.
+- São 12 casos e **1674 medições**, em 46 segundos.
 
-**Ambiente:** <!-- TODO(B4): copiar de benchmarks/ambiente_t3.json --> a mesma máquina do T2 (CPython 3.14.6, Linux 6.19.14, AMD Ryzen 5 5500U). A memória não foi medida com ferramenta; o número de nós da Trie é contado e serve de indicação.
+**Ambiente** (de `benchmarks/ambiente_t3.json`): CPython 3.14.6, Linux 6.19.14 (Fedora 43), AMD Ryzen 5 5500U, código na revisão `5d5bfb17a1b1cfaf72fe5cd7d91ba1fd33e4cc61` (árvore limpa). Essa revisão já tinha a BST, a AVL e a Trie registradas, com o mesmo código que entrou na `main` pelo PR #4. A memória não foi medida com ferramenta; o número de nós da Trie é contado e serve de indicação.
 
-## 7. Resultados (provisórios)
+## 7. Resultados
 
-<!-- TODO(B4): substituir pelas tabelas de benchmarks/resumo_t3.md -->
-
-Tempos em mediana de 3 repetições do ensaio; os IQRs estão no resumo.
+Tabelas extraídas de `benchmarks/resumo_t3.md`, que tem os 12 casos com IQR. As 1674 medições estão em `benchmarks/resultados_t3.csv`. Os valores são medianas de 10 repetições.
 
 ### Altura
 
@@ -129,6 +133,7 @@ Tempos em mediana de 3 repetições do ensaio; os IQRs estão no resumo.
 | real | 979 | ordenado | **979** | 10 | 33 |
 | sintetico | 1000 | aleatorio | 22 | 12 | 13 |
 | sintetico | 1000 | quase_ordenado | 746 | 11 | 13 |
+| sintetico | 5000 | aleatorio | 30 | 15 | 13 |
 | sintetico | 5000 | ordenado | **5000** | 13 | 13 |
 | sintetico | 20000 | aleatorio | 33 | 17 | 13 |
 | sintetico | 20000 | ordenado | — | 15 | 13 |
@@ -137,56 +142,53 @@ Tempos em mediana de 3 repetições do ensaio; os IQRs estão no resumo.
 
 | Origem | n | Cenário | Lista ordenada | BST | AVL | Trie |
 |---|---:|---|---:|---:|---:|---:|
-| real | 979 | original | 0,47 | 1,95 | 6,71 | 6,71 |
-| real | 979 | ordenado | 0,34 | 53,3 | 6,92 | 6,16 |
-| sintetico | 5000 | aleatorio | 3,68 | 5,30 | 22,8 | 36,3 |
-| sintetico | 5000 | ordenado | 1,68 | 557,6 | 22,3 | 33,1 |
-| sintetico | 20000 | aleatorio | 40,6 | 34,9 | 110 | 178 |
+| real | 979 | original | 0,469 | 1,95 | 6,70 | 5,91 |
+| real | 979 | ordenado | 0,309 | 54,2 | 7,47 | 6,66 |
+| sintetico | 5000 | aleatorio | 2,75 | 6,28 | 22,5 | 36,3 |
+| sintetico | 5000 | ordenado | 1,59 | 564,3 | 22,0 | 38,0 |
+| sintetico | 20000 | aleatorio | 26,5 | 49,6 | 130,9 | 326,8 |
 
 ### Busca exata (µs por busca)
 
 | Origem | n | Cenário | Lista ordenada | BST | AVL | Trie |
 |---|---:|---|---:|---:|---:|---:|
-| real | 979 | original | 1,22 | 0,90 | 0,63 | 0,76 |
-| real | 979 | ordenado | 1,24 | 23,1 | 0,78 | 0,98 |
-| sintetico | 5000 | ordenado | 1,63 | 118,1 | 1,63 | 1,30 |
-| sintetico | 20000 | aleatorio | 2,17 | 1,87 | 2,11 | 1,34 |
+| real | 979 | original | 1,28 | 0,86 | 0,64 | 0,77 |
+| real | 979 | ordenado | 1,26 | 24,0 | 0,78 | 1,01 |
+| sintetico | 5000 | ordenado | 1,57 | 116,0 | 1,43 | 1,18 |
+| sintetico | 20000 | aleatorio | 2,72 | 2,87 | 2,93 | 1,35 |
 
 ### Busca por prefixo (µs por busca): Trie × varredura linear
 
-| Origem | n | Prefixo | Trie | Varredura |
-|---|---:|---|---:|---:|
-| real | 979 | 1 letra | 113,9 | 46,8 |
-| real | 979 | 2 letras | 16,8 | 33,4 |
-| real | 979 | 3 letras | 8,2 | 33,1 |
-| sintetico | 20000 | 1 letra | 1370 | 3180 |
-| sintetico | 20000 | 2 letras | 53,3 | 2529 |
-| sintetico | 20000 | 3 letras | 6,1 | 2625 |
-
-(Cenário `original` para os reais e `aleatorio` para os sintéticos.)
+| Origem | n | Cenário | Prefixo | Trie | Varredura |
+|---|---:|---|---|---:|---:|
+| real | 979 | original | 1 letra | 120,5 | 47,2 |
+| real | 979 | original | 2 letras | 19,0 | 30,6 |
+| real | 979 | original | 3 letras | 8,9 | 29,2 |
+| sintetico | 20000 | ordenado | 1 letra | 1119 | 1861 |
+| sintetico | 20000 | ordenado | 2 letras | 48,3 | 1596 |
+| sintetico | 20000 | ordenado | 3 letras | 6,0 | 1349 |
 
 ## 8. Discussão
 
-<!-- TODO(B4): revisar cada número com a coleta final -->
+**A BST degenera com os dados reais?** Em parte, e já na ordem do próprio JSON. Como os artistas vêm ordenados por nome, as chaves de nome entram em ordem crescente, intercaladas com os gêneros. A altura foi 39, o dobro da altura com as mesmas chaves embaralhadas (20). Com as chaves totalmente ordenadas, a BST vira uma lista: altura 979 com os dados reais e 5000 com 5000 chaves sintéticas. Nesse caso a busca exata fica cerca de 80 vezes mais lenta que na AVL (116,0 contra 1,43 µs, n = 5000), e a construção cerca de 26 vezes (564 contra 22 ms). É o pior caso O(n) da teoria, e foi para medi-lo que a BST foi escrita sem recursão.
 
-**A BST degenera com os dados reais?** Em parte, e já com a ordem do próprio JSON. Como os artistas vêm ordenados por nome, as chaves de nome entram em ordem crescente, intercaladas com os gêneros. A altura foi 39, o dobro da altura com as mesmas chaves embaralhadas (20). Com as chaves totalmente ordenadas, a BST vira uma lista: altura 979 com os dados reais e 5000 com 5000 chaves sintéticas. A busca exata fica até 70 vezes mais lenta que na AVL (118 contra 1,6 µs, n = 5000), e a construção, 25 vezes (558 contra 22 ms). É o pior caso O(n) da teoria, e foi para medi-lo que a BST foi escrita sem recursão.
+**A AVL compensa o custo das rotações?** No caso favorável à BST, ela é mais lenta para construir (22,5 contra 6,3 ms com 5000 chaves aleatórias), porque recalcula alturas e faz rotações a cada inserção, e porque a inserção é recursiva. Em troca, a altura ficou entre 10 e 17 em **todos** os casos, perto de log₂(n), e o tempo de busca não depende da ordem de entrada. Para um índice que recebe dados já ordenados, como o JSON deste projeto, essa garantia é o que importa.
 
-**A AVL compensa o custo das rotações?** Ela é mais lenta para construir que a BST no caso favorável (22,8 contra 5,3 ms com 5000 chaves aleatórias), porque recalcula alturas e faz rotações a cada inserção, e porque a inserção é recursiva. Em troca, a altura ficou entre 10 e 17 em **todos** os casos, perto de log₂(n), e o tempo de busca não depende da ordem de entrada. Para um índice que recebe dados já ordenados, como o JSON deste projeto, essa garantia é o que importa.
+**E a lista ordenada do T1?** Ela foi a mais rápida para construir em todos os casos (26,5 ms com 20.000 chaves, contra 49,6 da BST, 130,9 da AVL e 326,8 da Trie). Isso acontece porque o `sorted` do Python é implementado em C, e as árvores são Python puro. Na busca exata com até 5000 chaves, as estruturas balanceadas ficaram entre 0,6 e 2,1 µs, com diferenças próximas do ruído. Com 20.000 chaves, a Trie foi a mais rápida (1,35 contra 2,7 a 2,9 µs das outras), coerente com o custo O(m) dela não depender de n. A vantagem principal das árvores, porém, não é a busca exata num índice que não muda. É **inserir uma chave nova** em O(log n) (AVL) ou O(m) (Trie), sem reordenar a lista. Isso não foi medido separadamente.
 
-**E a lista ordenada do T1?** Ela foi a mais rápida para construir em quase todos os casos, porque o `sorted` do Python é implementado em C e as árvores são Python puro. Na busca exata, todas as estruturas balanceadas ficaram na faixa de 1 a 2 µs, e as diferenças entre elas ficaram perto do ruído. A vantagem real das árvores não é a busca exata num índice que não muda. É **inserir uma chave nova** em O(log n) (AVL) ou O(m) (Trie), sem reordenar a lista. Isso não foi medido separadamente neste benchmark.
-
-**A Trie ganha da varredura na busca por prefixo?** Depende do tamanho do prefixo. Com 2 ou 3 letras ela ganha de 2 a 4 vezes nos dados reais e de 47 a 430 vezes com 20.000 chaves, porque desce direto ao prefixo e só visita as chaves que começam com ele. Com **1 letra** ela perde nos dados reais (114 contra 47 µs): uma letra seleciona uma parte grande do índice, e percorrer nó a nó (um por caractere) custa mais em Python que testar `startswith` nas 979 chaves. Com 20.000 chaves a Trie volta a ganhar, mesmo com 1 letra. Na prática, um autocompletar usaria prefixos de 2 ou mais letras, ou limitaria o número de resultados.
+**A Trie ganha da varredura na busca por prefixo?** Depende do tamanho do prefixo. Com 2 ou 3 letras, ela ganha de 1,6 a 3,3 vezes nos dados reais e de 33 a 226 vezes com 20.000 chaves (cenário ordenado), porque desce direto ao prefixo e só visita as chaves que começam com ele. Com **1 letra**, ela perde nos dados reais (120,5 contra 47,2 µs). Uma letra seleciona uma parte grande do índice, e percorrer nó a nó (um por caractere) custa mais em Python que testar `startswith` nas 979 chaves. Com 20.000 chaves, a Trie volta a ganhar até com 1 letra (1119 contra 1861 µs). Na varredura com 20.000 chaves, o IQR chegou perto da mediana em vários casos. Por isso citamos os ganhos como ordem de grandeza: dezenas de vezes com 2 letras, centenas com 3.
 
 **Quanto de memória a Trie custa?** Para as 979 chaves reais, a Trie tem **7768 nós**, contra 979 nós da BST ou da AVL: cerca de 8 vezes mais, um por caractere de prefixo distinto. A altura dela não depende de n, e sim do tamanho da maior chave: 33 = os 32 caracteres de `fred sun walk & the dog brothers` mais a raiz. Por isso ela não muda com a ordem de inserção.
 
 **Limitações**
 
-- Há uma única máquina e um único interpretador. Os tempos absolutos não se generalizam, e o resultado favorece o `sorted` em C contra as árvores em Python puro.
-- Uma busca exata leva de 1 a 2 µs. Nessa escala, o ruído é grande, e alguns IQRs da AVL ficaram maiores que a própria mediana. Diferenças menores que o IQR não sustentam conclusões.
+- Há uma única máquina e um único interpretador. Os tempos absolutos não se generalizam, e a comparação favorece o `sorted` em C contra as árvores em Python puro.
+- Uma busca exata leva de 1 a 3 µs. Nessa escala o ruído é grande: alguns IQRs da AVL passam da metade da mediana, e a construção da Trie com 5000 chaves aleatórias teve IQR (36,8 ms) maior que a mediana (36,3 ms). Diferenças menores que o IQR não sustentam conclusões.
 - As chaves sintéticas são palavras aleatórias, sem a distribuição de prefixos de nomes reais.
 - A busca por prefixo foi comparada com a varredura linear, não com uma busca binária de intervalo na lista ordenada.
 - A memória foi estimada pelo número de nós, não medida.
 - A inserção incremental, que é a principal vantagem das árvores, não foi medida isoladamente.
+- Na busca por prefixo, o ranking do T2 deixa a maior parte dos resultados com score 0 (seção 5).
 
 ## 9. Divisão e reprodução
 
