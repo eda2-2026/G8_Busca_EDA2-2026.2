@@ -2,7 +2,7 @@ import argparse
 import json
 
 from src.search.busca import carregar_dados
-from src.servico import pesquisar_e_ordenar
+from src.servico import BUSCAS, pesquisar_e_ordenar
 from src.sort.api import ALGORITMOS
 
 
@@ -26,7 +26,7 @@ def main():
     parser.add_argument("--termo", default="")
     parser.add_argument(
         "--busca",
-        choices=["sequencial", "binaria"],
+        choices=list(BUSCAS),
         default="sequencial",
     )
     parser.add_argument(
@@ -47,12 +47,15 @@ def main():
     except (OSError, json.JSONDecodeError, UnicodeError) as erro:
         parser.error(f"Não foi possível carregar os dados: {erro}")
 
-    resultados = pesquisar_e_ordenar(
-        artistas,
-        args.termo,
-        busca=args.busca,
-        algoritmo=args.algoritmo,
-    )
+    try:
+        resultados = pesquisar_e_ordenar(
+            artistas,
+            args.termo,
+            busca=args.busca,
+            algoritmo=args.algoritmo,
+        )
+    except ValueError as erro:
+        parser.error(str(erro))
 
     print(f"Busca: {args.busca} | Ordenação: {args.algoritmo.title()} Sort")
     print(f"Total encontrado: {len(resultados)}")
