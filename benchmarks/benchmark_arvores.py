@@ -81,7 +81,6 @@ def estruturas_disponiveis():
 
 def varrer_prefixo(lista, prefixo):
     """Busca por prefixo sem Trie: percorre todas as chaves da lista ordenada."""
-    prefixo = prefixo.strip().lower()
     vistos = set()
     resultado = []
     for chave, ids in lista.itens:

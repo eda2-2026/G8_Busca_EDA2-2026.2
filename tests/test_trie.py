@@ -52,11 +52,13 @@ class TestTrieBuscaExata(unittest.TestCase):
         self.assertEqual(trie.buscar("rap metal"), ["a1"])
         self.assertEqual(len(trie), 2)
 
-    def test_normaliza_maiusculas_e_espacos_nas_pontas(self):
-        trie = montar([("  Rock ", "a1")])
+    def test_nao_normaliza_como_bst_e_avl(self):
+        # quem chama (construir_arvore, servico) já entrega a chave em strip().lower()
+        trie = montar([("rock", "a1")])
 
-        self.assertEqual(trie.buscar("ROCK"), ["a1"])
-        self.assertEqual(trie.buscar(" rock  "), ["a1"])
+        self.assertEqual(trie.buscar("Rock"), [])
+        self.assertEqual(trie.buscar("rock "), [])
+        self.assertEqual(trie.buscar_prefixo("RO"), [])
 
     def test_acentos_sao_caracteres_distintos(self):
         trie = montar([("forró", "a1"), ("forro", "a2")])
@@ -107,9 +109,6 @@ class TestTriePrefixo(unittest.TestCase):
             self.trie.buscar_prefixo(""),
             ["a6", "a2", "a1", "a4", "a3", "a5"],
         )
-
-    def test_prefixo_normalizado(self):
-        self.assertEqual(self.trie.buscar_prefixo("  RO "), ["a3", "a1", "a5"])
 
     def test_prefixo_com_espaco_interno(self):
         self.assertEqual(self.trie.buscar_prefixo("rap m"), ["a4"])

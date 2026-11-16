@@ -25,15 +25,14 @@ class _No:
         return filho
 
 
-def _normalizar(texto):
-    return texto.strip().lower()
-
-
 class Trie:
     """Árvore de prefixos: cada aresta é um caractere da chave.
 
     Busca exata e por prefixo custam O(m), com m = tamanho do termo,
     independentemente de quantas chaves estão guardadas.
+
+    Como a BST e a AVL, não normaliza: quem chama entrega as chaves e os
+    termos já em strip().lower() (ver construir_arvore e servico).
     """
 
     def __init__(self):
@@ -41,7 +40,6 @@ class Trie:
         self._tamanho = 0
 
     def inserir(self, chave, id_artista):
-        chave = _normalizar(chave)
         if not chave:
             return
 
@@ -63,13 +61,13 @@ class Trie:
         return no
 
     def buscar(self, chave):
-        no = self._descer(_normalizar(chave))
+        no = self._descer(chave)
         if no is None:
             return []
         return list(no.ids)
 
     def buscar_prefixo(self, prefixo):
-        inicio = self._descer(_normalizar(prefixo))
+        inicio = self._descer(prefixo)
         if inicio is None:
             return []
 
