@@ -5,6 +5,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from src.tree.api import INDICES
+
 
 RAIZ = Path(__file__).resolve().parents[1]
 
@@ -138,6 +140,33 @@ class TestCLI(unittest.TestCase):
             "Não foi possível carregar os dados",
             resultado.stderr,
         )
+
+    def test_buscas_por_arvore_iguais_a_binaria(self):
+        binaria = self.executar("--termo", "rock", "--busca", "binaria")
+        self.assertEqual(binaria.returncode, 0, binaria.stderr)
+
+        for busca in ("bst", "avl"):
+            with self.subTest(busca=busca):
+                resultado = self.executar("--termo", "rock", "--busca", busca)
+                self.assertEqual(resultado.returncode, 0, resultado.stderr)
+                linhas = resultado.stdout.splitlines()
+                self.assertTrue(linhas[0].startswith(f"Busca: {busca} |"))
+                self.assertEqual(linhas[1:], binaria.stdout.splitlines()[1:])
+
+    @unittest.skipIf("trie" in INDICES, "Trie já registrada")
+    def test_prefixo_sem_trie_sai_com_erro_limpo(self):
+        resultado = self.executar("--termo", "ro", "--busca", "prefixo")
+        self.assertNotEqual(resultado.returncode, 0)
+        self.assertIn("Busca por prefixo requer a Trie.", resultado.stderr)
+        self.assertNotIn("Traceback", resultado.stderr)
+
+    @unittest.skipUnless("trie" in INDICES, "Trie ainda não registrada")
+    def test_buscas_com_trie(self):
+        for busca, termo in (("prefixo", "ro"), ("trie", "rock")):
+            with self.subTest(busca=busca):
+                resultado = self.executar("--termo", termo, "--busca", busca)
+                self.assertEqual(resultado.returncode, 0, resultado.stderr)
+                self.assertIn(f"Busca: {busca} |", resultado.stdout)
 
 
 if __name__ == "__main__":
